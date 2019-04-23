@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/ChimeraCoder/anaconda"
 	log "github.com/sirupsen/logrus"
@@ -110,6 +111,15 @@ func handleTweetRefresh(w http.ResponseWriter, r *http.Request) {
 
 	tweet, err := twitter.GetTweet(req.ID, url.Values{})
 	if err != nil {
+		if strings.Contains(err.Error(), "No status found with that ID.") {
+			log.WithField("id", req.ID).Info("Removing no longer existing tweet")
+			if err = tweetStore.DeleteTweetByID(uint64(req.ID)); err != nil {
+				log.WithError(err).Error("Unable to delete tweet")
+				http.Error(w, "Something went wrong", http.StatusInternalServerError)
+			}
+			return
+		}
+
 		log.WithError(err).Error("Unable to fetch tweet")
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
 		return

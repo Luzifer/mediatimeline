@@ -31,32 +31,29 @@ func newStore(location string) (*store, error) {
 	return s, s.load()
 }
 
-func (s *store) StoreTweets(tweets []tweet) error {
+func (s *store) DeleteTweetByID(id uint64) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	tmp := s.s
+	var (
+		tmp       = []tweet{}
+		needsSave bool
+	)
 
-	for _, t := range tweets {
-		var stored bool
-
-		for i := 0; i < len(tmp); i++ {
-			if tmp[i].ID == t.ID {
-				tmp[i] = t
-				stored = true
-				break
-			}
+	for _, t := range s.s {
+		if t.ID == id {
+			needsSave = true
+			continue
 		}
 
-		if !stored {
-			tmp = append(tmp, t)
-		}
+		tmp = append(tmp, t)
 	}
 
-	sort.Slice(tmp, func(j, i int) bool { return tmp[i].ID < tmp[j].ID })
+	if !needsSave {
+		return nil
+	}
 
 	s.s = tmp
-
 	return s.save()
 }
 
@@ -104,6 +101,35 @@ func (s *store) GetTweetsSince(since uint64) ([]tweet, error) {
 	}
 
 	return s.s[:i], nil
+}
+
+func (s *store) StoreTweets(tweets []tweet) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	tmp := s.s
+
+	for _, t := range tweets {
+		var stored bool
+
+		for i := 0; i < len(tmp); i++ {
+			if tmp[i].ID == t.ID {
+				tmp[i] = t
+				stored = true
+				break
+			}
+		}
+
+		if !stored {
+			tmp = append(tmp, t)
+		}
+	}
+
+	sort.Slice(tmp, func(j, i int) bool { return tmp[i].ID < tmp[j].ID })
+
+	s.s = tmp
+
+	return s.save()
 }
 
 func (s *store) load() error {
