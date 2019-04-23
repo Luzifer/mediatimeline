@@ -63,39 +63,41 @@ func main() {
 		cfg.UserToken, cfg.UserSecret,
 		cfg.AppToken, cfg.AppSecret,
 	)
-	go loadAndStoreTweets()
+	go func() {
+		for t := time.NewTicker(time.Minute); true; <-t.C {
+			loadAndStoreTweets(false)
+		}
+	}()
 
 	http.Handle("/", http.FileServer(http.Dir(cfg.Frontend)))
 	http.ListenAndServe(cfg.Listen, nil)
 }
 
-func loadAndStoreTweets() {
-	for t := time.NewTicker(time.Minute); true; <-t.C {
-		params := url.Values{
-			"count": []string{"100"},
-		}
+func loadAndStoreTweets(forceRefresh bool) {
+	params := url.Values{
+		"count": []string{"100"},
+	}
 
-		lastTweet := tweetStore.GetLastTweetID()
+	lastTweet := tweetStore.GetLastTweetID()
 
-		if lastTweet > 0 {
-			params.Set("since_id", strconv.FormatUint(lastTweet, 10))
-		}
+	if lastTweet > 0 && !forceRefresh {
+		params.Set("since_id", strconv.FormatUint(lastTweet, 10))
+	}
 
-		anacondaTweets, err := twitter.GetListTweetsBySlug(cfg.ListSlug, cfg.ListOwner, false, params)
-		if err != nil {
-			log.WithError(err).Error("Unable to fetch tweets")
-			continue
-		}
+	anacondaTweets, err := twitter.GetListTweetsBySlug(cfg.ListSlug, cfg.ListOwner, false, params)
+	if err != nil {
+		log.WithError(err).Error("Unable to fetch tweets")
+		return
+	}
 
-		tweets, err := convertTweetList(anacondaTweets, true)
-		if err != nil {
-			log.WithError(err).Error("Unable to parse tweets")
-			continue
-		}
+	tweets, err := convertTweetList(anacondaTweets, true)
+	if err != nil {
+		log.WithError(err).Error("Unable to parse tweets")
+		return
+	}
 
-		if err := tweetStore.StoreTweets(tweets); err != nil {
-			log.WithError(err).Error("Unable to store tweets")
-			continue
-		}
+	if err := tweetStore.StoreTweets(tweets); err != nil {
+		log.WithError(err).Error("Unable to store tweets")
+		return
 	}
 }

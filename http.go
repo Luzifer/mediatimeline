@@ -15,6 +15,7 @@ func init() {
 	http.HandleFunc("/api/since", handleNewest)
 	http.HandleFunc("/api/favourite", handleFavourite)
 	http.HandleFunc("/api/refresh", handleTweetRefresh)
+	http.HandleFunc("/api/force-reload", handleForceReload)
 }
 
 func handlePage(w http.ResponseWriter, r *http.Request) {
@@ -128,4 +129,15 @@ func handleTweetRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tweetResponse(w, tweets)
+}
+
+func handleForceReload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "This needs to be POST", http.StatusBadRequest)
+		return
+	}
+
+	go loadAndStoreTweets(true)
+
+	w.WriteHeader(http.StatusNoContent)
 }
