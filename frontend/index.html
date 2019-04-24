@@ -8,123 +8,85 @@
     <title>MediaTimeline</title>
 
     <!-- Bootstrap -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@4.3.1/dist/darkly/bootstrap.min.css" 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@4.3.1/dist/darkly/bootstrap.min.css"
           integrity="sha256-6W1mxPaAt4a6pkJVW5x5Xmq/LvxuQpR9dlzgy77SeZs=" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-vue@2.0.0-rc.19/dist/bootstrap-vue.min.css"
+          integrity="sha256-OnoDycdaaImljNTTBlX6Ki09xe93BWXN5T+Iqh4788s=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
           integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
 
-    <style>
-      .card-img-top {
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-        padding-bottom: 100%;
-      }
-      .faved {
-        color: yellow;
-      }
-      .user-image {
-        border-radius: 1.25rem;
-        height: 36px;
-      }
-      .tweet {
-        max-height: 50px;
-        white-space: pre-line;
-      }
-    </style>
+    <link rel="stylesheet" href="app.css">
 
   </head>
   <body>
     <div id="app">
-      <nav class="navbar navbar-expand-lg navbar-light bg-light mb-5">
-        <a class="navbar-brand" href="#">MediaTimeline Viewer</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
+      <b-navbar toggleable="lg" type="light" variant="light" class="mb-5">
+        <b-navbar-brand href="#">MediaTimeline Viewer</b-navbar-brand>
+        <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav ml-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="#" @click="triggerForceFetch"><i class="fas fa-sync"></i> Force reload</a>
-            </li>
-          </ul>
-        </div>
-      </nav>
+        <b-collapse id="nav-collapse" is-nav>
+          <b-navbar-nav class="ml-auto">
+            <b-nav-item href="#" @click="triggerForceFetch"><i class="fas fa-sync"></i> Force reload</b-nav-item>
+          </b-navbar-nav>
+        </b-collapse>
+      </b-navbar>
 
-      <div class="container">
+      <b-container>
 
-        <div class="row">
+        <b-row>
 
-          <div class="col-lg-3 col-md-4 col-12" v-for="tweet in tweets" :key="tweet.id" v-if="tweet.images">
-            <div class="card mb-3">
+          <b-col lg="3" md="4" xs="12" v-for="tweet in tweets" :key="tweet.id" v-if="tweet.images">
+            <b-card class="mb-3" no-body>
               <div :style="`background-image: url('${tweet.images[0].image}')`" class="card-img-top"></div>
-              <div class="card-body">
 
-                <div class="media">
-                  <img :src="tweet.user.image" class="mr-2 user-image">
-                  <div class="media-body">
-                    <h6 class="mt-0 mb-0">{{ tweet.user.screen_name }}</h6>
-                    <small>{{ moment(tweet.posted).format('lll') }}</small>
-                  </div>
-                </div>
+              <b-card-body>
+                <b-media>
+                  <b-img slot="aside" class="user-image" :src="tweet.user.image"></b-img>
 
-              </div>
-              <div class="card-footer text-right">
-                <a class="btn btn-sm btn-secondary" :href="`https://twitter.com/${tweet.user.screen_name}/status/${tweet.id}`">
+                  <h6 class="mt-0 mb-0">{{ tweet.user.screen_name }}</h6>
+                  <small>{{ moment(tweet.posted).format('lll') }}</small>
+                </b-media>
+              </b-card-body>
+
+              <b-card-footer class="text-right">
+                <b-button size="sm" variant="secondary" :href="`https://twitter.com/${tweet.user.screen_name}/status/${tweet.id}`">
                   <i class="fas fa-link"></i>
-                </a>
-                <button class="btn btn-sm btn-secondary" @click="refetch(tweet)">
+                </b-button>
+                <b-button size="sm" variant="secondary" @click="refetch(tweet)">
                   <i class="fas fa-sync"></i>
-                </button>
-                <button 
-                  :class="{ btn: true, 'btn-sm': true, 'btn-secondary': true, 'faved': tweet.favorited }"
-                  @click="favourite(tweet)"
-                >
+                </b-button>
+                <b-button size="sm" variant="secondary" :class="{ 'faved': tweet.favorited }" @click="favourite(tweet)">
                   <i class="fas fa-star"></i>
-                </button>
-                <button class="btn btn-sm btn-secondary" @click="callModal(tweet)">
+                </b-button>
+                <b-button size="sm" variant="secondary" @click="callModal(tweet)">
                   <i class="fas fa-search-plus"></i>
-                  <span class="badge badge-light badge-pill" v-if="tweet.images.length > 1">{{ tweet.images.length }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
+                  <b-badge pill variant="light" v-if="tweet.images.length > 1">{{ tweet.images.length }}</b-badge>
+                </b-button>
+              </b-card-footer>
 
-        </div>
+            </b-card>
+          </b-col>
 
-        <div class="modal" tabindex="-1" role="dialog" v-if="modalTweet">
-          <div class="modal-dialog" role="document">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title">{{ modalTweet.user.screen_name }}</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </div>
-              <div class="modal-body">
+        </b-row>
 
-                <div id="carouselExampleControls" class="carousel slide">
-                  <div class="carousel-inner">
-                    <div :class="{ 'carousel-item': true, 'active': idx == 0 }" v-for="(image, idx) in modalTweet.images">
-                      <img :src="image.image" class="d-block w-100">
-                    </div>
-                  </div>
-                  <a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev" v-if="modalTweet.images.length > 1">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="sr-only">Previous</span>
-                  </a>
-                  <a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next" v-if="modalTweet.images.length > 1">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="sr-only">Next</span>
-                  </a>
-                </div>
+        <b-modal
+          centered
+          @hidden="modalTweet = null"
+          hide-footer
+          :title="modalTweet.user.screen_name"
+          v-if="modalTweet"
+          :visible="true"
+        >
+          <b-carousel :controls="modalTweet.images.length > 1">
+            <b-carousel-slide
+              :img-src="image.image"
+              :key="image.id"
+              v-for="(image, idx) in modalTweet.images"
+            ></b-carousel-slide>
+          </b-carousel>
+        </b-modal>
 
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div> <!-- /.container -->
+      </b-container>
     </div> <!-- /#app -->
 
 
@@ -137,144 +99,16 @@
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"
             integrity="sha256-chlNFSVx3TdcQ2Xlw7SvnbLAavAQLO0Y/LBiWX04viY=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-vue@2.0.0-rc.19/dist/bootstrap-vue.min.js"
+            integrity="sha256-7SSbIENEPA/7lL18+muIwRP381WW9QrjcnC9C9mS9So=" crossorigin="anonymous"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/axios@0.18.0/dist/axios.min.js"
             integrity="sha256-mpnrJ5DpEZZkwkE1ZgkEQQJW/46CSEh/STrZKOB/qoM=" crossorigin="anonymous"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/min/moment.min.js" 
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/min/moment.min.js"
             integrity="sha256-4iQZ6BVL4qNKlQ27TExEhBN1HFPvAvAMbFavKKosSWQ=" crossorigin="anonymous"></script>
 
-    <script>
-      function sortOrder(i, j) {
-        switch (true) {
-          case i < j:
-            return -1
-          case j < i:
-            return 1
-          default:
-            return 0
-        }
-      }
-
-      let app = new Vue({
-        computed: {
-        },
-
-        data: {
-          tweets: [],
-          modalTweet: null,
-        },
-
-        el: "#app",
-
-        methods: {
-          callModal(tweet) {
-            this.modalTweet = tweet
-          },
-
-          favourite(tweet) {
-            axios
-              .post('/api/favourite', { id: tweet.id })
-              .then((res) => {
-                if (res.data.length === 0) {
-                  this.refetch(tweet)
-                  return
-                }
-
-                this.upsertTweets(res.data)
-              })
-              .catch((err) => console.log(err))
-          },
-
-          refetch(tweet) {
-            axios
-              .post('/api/refresh', { id: tweet.id })
-              .then((res) => {
-                if (res.data.length === 0) {
-                  return
-                }
-
-                this.upsertTweets(res.data)
-              })
-              .catch((err) => console.log(err))
-          },
-
-          refresh(forceReload = false) {
-            let apiURL = '/api/page' // By default query page 1
-            if (this.tweets.length > 0 && !forceReload) {
-              apiURL = `/api/since?id=${this.tweets[0].id}`
-            }
-
-            axios
-              .get(apiURL)
-              .then((resp) => {
-                if (resp.data.length === 0) {
-                  return
-                }
-
-                this.upsertTweets(resp.data)
-              })
-              .catch((err) => {
-                console.log(err)
-              })
-          },
-
-          triggerForceFetch() {
-            axios
-              .post('/api/force-reload')
-              .then(() => {
-                window.setTimeout(() => this.refresh(true), 10000)
-              })
-              .catch((err) => console.log(err))
-          },
-
-          upsertTweets(data) {
-            let tweets = this.tweets
-
-            for (idx in data) {
-              let tweet = data[idx]
-              let inserted = false
-
-              for (let i = 0; i < tweets.length; i++) {
-                if (tweets[i].id == tweet.id) {
-                  tweets[i] = tweet
-                  inserted = true
-                  break
-                }
-              }
-
-              if (!inserted) {
-                tweets = [...tweets, tweet]
-              }
-            }
-
-            tweets.sort((j, i) => sortOrder(i.id, j.id))
-            this.tweets = tweets
-          },
-        },
-
-        mounted() {
-          this.refresh()
-          window.setInterval(this.refresh, 30000)
-        },
-
-        watch: {
-          modalTweet() {
-            window.setTimeout(() => {
-              $('.modal').on('hide.bs.modal', () => {
-                // When modal is closed clean it up
-                $('.carousel').carousel('dispose')
-                this.modalTweet = null
-              })
-              $('.modal').modal('show')
-              $('.carousel').carousel({
-                pause: true,
-              })
-            }, 100)
-          },
-        },
-      })
-    </script>
+    <script src="app.js"></script>
   </body>
 </html>
 
