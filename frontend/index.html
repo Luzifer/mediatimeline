@@ -50,7 +50,7 @@
               </b-card-body>
 
               <b-card-footer class="text-right">
-                <b-button size="sm" variant="secondary" :href="`https://twitter.com/${tweet.user.screen_name}/status/${tweet.id}`">
+                <b-button size="sm" variant="secondary" :href="`https://twitter.com/${tweet.user.screen_name}/status/${tweet.id}`" target="_blank">
                   <i class="fas fa-link"></i>
                 </b-button>
                 <b-button size="sm" variant="secondary" @click="refetch(tweet)">
