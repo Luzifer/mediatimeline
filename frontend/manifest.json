@@ -1,0 +1,25 @@
+{
+  "short_name": "MediaTimeline",
+  "name": "MediaTimeline Viewer",
+  "icons": [
+    {
+      "src": "camera_192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "camera_512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "camera_600.png",
+      "type": "image/png",
+      "sizes": "600x600"
+    }
+  ],
+  "start_url": "/",
+  "background-color": "#222222",
+  "display": "standalone",
+  "theme_color": "#222222"
+}
