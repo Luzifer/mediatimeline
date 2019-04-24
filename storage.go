@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"encoding/gob"
 	"os"
 	"sort"
@@ -31,6 +32,7 @@ func newStore(location string) (*store, error) {
 	return s, s.load()
 }
 
+// DeleteTweetByID removes the tweet with mentioned ID from the store and issues a save when required
 func (s *store) DeleteTweetByID(id uint64) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -57,6 +59,7 @@ func (s *store) DeleteTweetByID(id uint64) error {
 	return s.save()
 }
 
+// GetLastTweetID returns the newest known tweet ID (or 0 if none)
 func (s *store) GetLastTweetID() uint64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -68,7 +71,8 @@ func (s *store) GetLastTweetID() uint64 {
 	return s.s[0].ID
 }
 
-func (s *store) GetTweetPage(page int) ([]tweet, error) {
+// GetTweetPage returns a paginated version of the store based on the page number (1..N)
+func (s *store) GetTweetPage(page int) []tweet {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -78,17 +82,18 @@ func (s *store) GetTweetPage(page int) ([]tweet, error) {
 	)
 
 	if start > len(s.s) {
-		return []tweet{}, nil
+		return []tweet{}
 	}
 
 	if start+num >= len(s.s) {
 		num = len(s.s) - start
 	}
 
-	return s.s[start:num], nil
+	return s.s[start:num]
 }
 
-func (s *store) GetTweetsSince(since uint64) ([]tweet, error) {
+// GetTweetsSince returns all tweets newer than the given tweet ID
+func (s *store) GetTweetsSince(since uint64) []tweet {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -100,9 +105,10 @@ func (s *store) GetTweetsSince(since uint64) ([]tweet, error) {
 		}
 	}
 
-	return s.s[:i], nil
+	return s.s[:i]
 }
 
+// StoreTweets performs an "upsert" for the given tweets (update known, add new)
 func (s *store) StoreTweets(tweets []tweet) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -132,6 +138,7 @@ func (s *store) StoreTweets(tweets []tweet) error {
 	return s.save()
 }
 
+// load reads the file storage with the tweet database
 func (s *store) load() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -151,9 +158,14 @@ func (s *store) load() error {
 	}
 	defer f.Close()
 
+	zf, err := gzip.NewReader(f)
+	if err != nil {
+		return errors.Wrap(err, "Unable to open gzip reader")
+	}
+
 	tmp := []tweet{}
 
-	if err := gob.NewDecoder(f).Decode(&tmp); err != nil {
+	if err := gob.NewDecoder(zf).Decode(&tmp); err != nil {
 		return errors.Wrap(err, "Unable to decode storage file")
 	}
 
@@ -162,6 +174,7 @@ func (s *store) load() error {
 	return nil
 }
 
+// save writes the file storage with the tweet database
 func (s *store) save() error {
 	// No need to lock here, has write-lock from s.StoreTweets
 
@@ -171,5 +184,11 @@ func (s *store) save() error {
 	}
 	defer f.Close()
 
-	return errors.Wrap(gob.NewEncoder(f).Encode(s.s), "Unable to encode store")
+	zf, _ := gzip.NewWriterLevel(f, gzip.BestCompression) // #nosec G104: Ignore error as using a compression constant
+	defer func() {
+		zf.Flush()
+		zf.Close()
+	}()
+
+	return errors.Wrap(gob.NewEncoder(zf).Encode(s.s), "Unable to encode store")
 }

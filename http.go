@@ -12,61 +12,15 @@ import (
 )
 
 func init() {
-	http.HandleFunc("/api/page", handlePage)
-	http.HandleFunc("/api/since", handleNewest)
-	http.HandleFunc("/api/favourite", handleFavourite)
-	http.HandleFunc("/api/refresh", handleTweetRefresh)
+	http.HandleFunc("/api/favourite", handleFavorite)
 	http.HandleFunc("/api/force-reload", handleForceReload)
+	http.HandleFunc("/api/page", handlePage)
+	http.HandleFunc("/api/refresh", handleTweetRefresh)
+	http.HandleFunc("/api/since", handleNewest)
 }
 
-func handlePage(w http.ResponseWriter, r *http.Request) {
-	var page int = 1
-
-	if p, err := strconv.Atoi(r.URL.Query().Get("n")); err == nil && p > 0 {
-		page = p
-	}
-
-	tweets, err := tweetStore.GetTweetPage(page)
-	if err != nil {
-		log.WithError(err).Error("Unable to fetch tweets for page request")
-		http.Error(w, "Something went wrong", http.StatusInternalServerError)
-		return
-	}
-
-	tweetResponse(w, tweets)
-}
-
-func handleNewest(w http.ResponseWriter, r *http.Request) {
-	var since uint64 = 0
-
-	if s, err := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64); err == nil && s > 0 {
-		since = s
-	}
-
-	if since == 0 {
-		http.Error(w, "Must specify last id", http.StatusBadRequest)
-		return
-	}
-
-	tweets, err := tweetStore.GetTweetsSince(since)
-	if err != nil {
-		log.WithError(err).Error("Unable to fetch tweets for newest request")
-		http.Error(w, "Something went wrong", http.StatusInternalServerError)
-		return
-	}
-
-	tweetResponse(w, tweets)
-}
-
-func tweetResponse(w http.ResponseWriter, tweets []tweet) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(tweets)
-}
-
-func handleFavourite(w http.ResponseWriter, r *http.Request) {
+// handleFavorite takes the ID of a tweet and submits a favorite to Twitter
+func handleFavorite(w http.ResponseWriter, r *http.Request) {
 	req := struct {
 		ID int64 `json:"id,string"`
 	}{}
@@ -99,6 +53,46 @@ func handleFavourite(w http.ResponseWriter, r *http.Request) {
 	tweetResponse(w, tweets)
 }
 
+// handleForceReload issues a full load of the latest tweets to update their state
+func handleForceReload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "This needs to be POST", http.StatusBadRequest)
+		return
+	}
+
+	go loadAndStoreTweets(true)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleNewest returns all tweets newly stored since the given tweet ID
+func handleNewest(w http.ResponseWriter, r *http.Request) {
+	var since uint64
+
+	if s, err := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64); err == nil && s > 0 {
+		since = s
+	}
+
+	if since == 0 {
+		http.Error(w, "Must specify last id", http.StatusBadRequest)
+		return
+	}
+
+	tweetResponse(w, tweetStore.GetTweetsSince(since))
+}
+
+// handlePage loads older tweets with pagination
+func handlePage(w http.ResponseWriter, r *http.Request) {
+	var page = 1
+
+	if p, err := strconv.Atoi(r.URL.Query().Get("n")); err == nil && p > 0 {
+		page = p
+	}
+
+	tweetResponse(w, tweetStore.GetTweetPage(page))
+}
+
+// handleTweetRefresh refreshes the state of the tweet with the given ID against the Twitter API
 func handleTweetRefresh(w http.ResponseWriter, r *http.Request) {
 	req := struct {
 		ID int64 `json:"id,string"`
@@ -141,13 +135,11 @@ func handleTweetRefresh(w http.ResponseWriter, r *http.Request) {
 	tweetResponse(w, tweets)
 }
 
-func handleForceReload(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "This needs to be POST", http.StatusBadRequest)
-		return
-	}
+// tweetResponse is a generic wrapper to return a list of tweets through JSON
+func tweetResponse(w http.ResponseWriter, tweets []tweet) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.WriteHeader(http.StatusOK)
 
-	go loadAndStoreTweets(true)
-
-	w.WriteHeader(http.StatusNoContent)
+	json.NewEncoder(w).Encode(tweets)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/ChimeraCoder/anaconda"
 	log "github.com/sirupsen/logrus"
 
+	hhelp "github.com/Luzifer/go_helpers/v2/http"
 	"github.com/Luzifer/rconfig/v2"
 )
 
@@ -69,16 +70,20 @@ func main() {
 		}
 	}()
 
+	log.WithField("version", version).Info("MediaTimeline Viewer started")
+
 	http.Handle("/", http.FileServer(http.Dir(cfg.Frontend)))
-	http.ListenAndServe(cfg.Listen, nil)
+	http.ListenAndServe(cfg.Listen, hhelp.NewHTTPLogHandler(http.DefaultServeMux))
 }
 
 func loadAndStoreTweets(forceRefresh bool) {
+	log.WithField("force", forceRefresh).Debug("Starting tweets fetch")
 	params := url.Values{
-		"count": []string{"100"},
+		"count": []string{"1000"},
 	}
 
 	lastTweet := tweetStore.GetLastTweetID()
+	log.WithField("last", lastTweet).Debug("Found last known tweet ID")
 
 	if lastTweet > 0 && !forceRefresh {
 		params.Set("since_id", strconv.FormatUint(lastTweet, 10))
@@ -100,4 +105,6 @@ func loadAndStoreTweets(forceRefresh bool) {
 		log.WithError(err).Error("Unable to store tweets")
 		return
 	}
+
+	log.Debug("Finished tweets fetch")
 }
