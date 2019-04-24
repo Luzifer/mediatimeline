@@ -38,7 +38,7 @@
 
           <b-col lg="3" md="4" xs="12" v-for="tweet in tweets" :key="tweet.id" v-if="tweet.images">
             <b-card class="mb-3" no-body>
-              <div :style="`background-image: url('${tweet.images[0].image}')`" class="card-img-top"></div>
+              <div :style="`background-image: url('${tweet.images[0].image}')`" class="card-img-top preview" @click="callModal(tweet)"></div>
 
               <b-card-body>
                 <b-media>

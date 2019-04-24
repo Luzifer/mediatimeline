@@ -7,14 +7,17 @@
 .faved, .faved:hover, .faved:active {
   color: yellow;
 }
-.user-image {
-  border-radius: 1.25rem;
-  height: 36px;
+.preview {
+  cursor: pointer;
+}
+.toast, .toast-header {
+  background-color: rgba(34,34,34,0.85);
 }
 .tweet {
   max-height: 50px;
   white-space: pre-line;
 }
-.toast, .toast-header {
-  background-color: rgba(34,34,34,0.85);
+.user-image {
+  border-radius: 1.25rem;
+  height: 36px;
 }
