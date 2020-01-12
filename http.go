@@ -124,7 +124,9 @@ func handleTweetRefresh(w http.ResponseWriter, r *http.Request) {
 			if err = tweetStore.DeleteTweetByID(uint64(tweetID)); err != nil {
 				log.WithError(err).Error("Unable to delete tweet")
 				http.Error(w, "Something went wrong", http.StatusInternalServerError)
+				return
 			}
+			jsonResponse(w, map[string]bool{"gone": true})
 			return
 		}
 
@@ -151,9 +153,13 @@ func handleTweetRefresh(w http.ResponseWriter, r *http.Request) {
 
 // tweetResponse is a generic wrapper to return a list of tweets through JSON
 func tweetResponse(w http.ResponseWriter, tweets []tweet) {
+	jsonResponse(w, tweets)
+}
+
+func jsonResponse(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(tweets)
+	json.NewEncoder(w).Encode(data)
 }

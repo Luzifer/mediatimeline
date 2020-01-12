@@ -28,20 +28,7 @@ new Vue({
     deleteTweet(tweet) {
       axios
         .delete(`/api/${tweet.id}`)
-        .then(() => {
-          const tweets = []
-
-          for (const i in this.tweets) {
-            const t = this.tweets[i]
-            if (t.id === tweet.id) {
-              continue
-            }
-
-            tweets.push(t)
-          }
-
-          this.tweets = tweets
-        })
+        .then(() => this.removeTweet(tweet.id))
         .catch(err => console.log(err))
     },
 
@@ -71,6 +58,10 @@ new Vue({
       axios
         .put(`/api/${tweet.id}/refresh`)
         .then(res => {
+          if (res.data.gone) {
+            return this.removeTweet(tweet.id)
+          }
+
           if (res.data.length === 0) {
             return
           }
@@ -82,8 +73,10 @@ new Vue({
 
     refresh(forceReload = false) {
       let apiURL = '/api/page' // By default query page 1
+      let append = false
       if (this.tweets.length > 0 && !forceReload) {
         apiURL = `/api/since?id=${this.tweets[0].id}`
+        append = true
       }
 
       axios
@@ -93,11 +86,26 @@ new Vue({
             return
           }
 
-          this.upsertTweets(resp.data)
+          this.upsertTweets(resp.data, append)
         })
         .catch(err => {
           console.log(err)
         })
+    },
+
+    removeTweet(id) {
+      const tweets = []
+
+      for (const i in this.tweets) {
+        const t = this.tweets[i]
+        if (t.id === id) {
+          continue
+        }
+
+        tweets.push(t)
+      }
+
+      this.tweets = tweets
     },
 
     triggerForceFetch() {
@@ -110,8 +118,8 @@ new Vue({
         .catch(err => console.log(err))
     },
 
-    upsertTweets(data) {
-      let tweets = this.tweets
+    upsertTweets(data, append = true) {
+      let tweets = append ? this.tweets : []
 
       for (const idx in data) {
         const tweet = data[idx]
