@@ -74,7 +74,7 @@ func main() {
 
 	log.WithField("version", version).Info("MediaTimeline Viewer started")
 
-	router.Handle("/", http.FileServer(http.Dir(cfg.Frontend)))
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir(cfg.Frontend)))
 	http.ListenAndServe(cfg.Listen, hhelp.NewHTTPLogHandler(router))
 }
 
