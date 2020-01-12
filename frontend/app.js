@@ -31,10 +31,13 @@ new Vue({
         .then(() => {
           const tweets = []
 
-          for (const t in this.tweets) {
-            if (t.id !== tweet.id) {
-              tweets.push(t)
+          for (const i in this.tweets) {
+            const t = this.tweets[i]
+            if (t.id === tweet.id) {
+              continue
             }
+
+            tweets.push(t)
           }
 
           this.tweets = tweets
