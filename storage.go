@@ -89,7 +89,7 @@ func (s *store) GetTweetPage(page int) []tweet {
 		num = len(s.s) - start
 	}
 
-	return s.s[start:num]
+	return s.s[start : start+num]
 }
 
 // GetTweetsSince returns all tweets newer than the given tweet ID
