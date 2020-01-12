@@ -8,29 +8,49 @@ import (
 	"strings"
 
 	"github.com/ChimeraCoder/anaconda"
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 func init() {
-	http.HandleFunc("/api/favourite", handleFavorite)
-	http.HandleFunc("/api/force-reload", handleForceReload)
-	http.HandleFunc("/api/page", handlePage)
-	http.HandleFunc("/api/refresh", handleTweetRefresh)
-	http.HandleFunc("/api/since", handleNewest)
+	router.HandleFunc("/api/{tweetID}/favorite", handleFavorite).Methods(http.MethodPut)
+	router.HandleFunc("/api/{tweetID}", handleDelete).Methods(http.MethodDelete)
+	router.HandleFunc("/api/force-reload", handleForceReload).Methods(http.MethodPut)
+	router.HandleFunc("/api/page", handlePage).Methods(http.MethodGet)
+	router.HandleFunc("/api/{tweetID}/refresh", handleTweetRefresh).Methods(http.MethodPut)
+	router.HandleFunc("/api/since", handleNewest).Methods(http.MethodGet)
+}
+
+func handleDelete(w http.ResponseWriter, r *http.Request) {
+	var vars = mux.Vars(r)
+
+	tweetID, err := strconv.ParseInt(vars["tweetID"], 10, 64)
+	if err != nil {
+		http.Error(w, errors.Wrap(err, "Unable to parse TweetID").Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := tweetStore.DeleteTweetByID(uint64(tweetID)); err != nil {
+		log.WithError(err).Error("Unable to delete tweet")
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleFavorite takes the ID of a tweet and submits a favorite to Twitter
 func handleFavorite(w http.ResponseWriter, r *http.Request) {
-	req := struct {
-		ID int64 `json:"id,string"`
-	}{}
+	var vars = mux.Vars(r)
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ID == 0 {
-		http.Error(w, "Need to specify id", http.StatusBadRequest)
+	tweetID, err := strconv.ParseInt(vars["tweetID"], 10, 64)
+	if err != nil {
+		http.Error(w, errors.Wrap(err, "Unable to parse TweetID").Error(), http.StatusBadRequest)
 		return
 	}
 
-	tweet, err := twitter.Favorite(req.ID)
+	tweet, err := twitter.Favorite(tweetID)
 	if err != nil {
 		log.WithError(err).Error("Unable to favourite tweet")
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
@@ -55,11 +75,6 @@ func handleFavorite(w http.ResponseWriter, r *http.Request) {
 
 // handleForceReload issues a full load of the latest tweets to update their state
 func handleForceReload(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "This needs to be POST", http.StatusBadRequest)
-		return
-	}
-
 	go loadAndStoreTweets(true)
 
 	w.WriteHeader(http.StatusNoContent)
@@ -94,20 +109,19 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 
 // handleTweetRefresh refreshes the state of the tweet with the given ID against the Twitter API
 func handleTweetRefresh(w http.ResponseWriter, r *http.Request) {
-	req := struct {
-		ID int64 `json:"id,string"`
-	}{}
+	var vars = mux.Vars(r)
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ID == 0 {
-		http.Error(w, "Need to specify id", http.StatusBadRequest)
+	tweetID, err := strconv.ParseInt(vars["tweetID"], 10, 64)
+	if err != nil {
+		http.Error(w, errors.Wrap(err, "Unable to parse TweetID").Error(), http.StatusBadRequest)
 		return
 	}
 
-	tweet, err := twitter.GetTweet(req.ID, url.Values{})
+	tweet, err := twitter.GetTweet(tweetID, url.Values{})
 	if err != nil {
 		if strings.Contains(err.Error(), "No status found with that ID.") {
-			log.WithField("id", req.ID).Info("Removing no longer existing tweet")
-			if err = tweetStore.DeleteTweetByID(uint64(req.ID)); err != nil {
+			log.WithField("id", tweetID).Info("Removing no longer existing tweet")
+			if err = tweetStore.DeleteTweetByID(uint64(tweetID)); err != nil {
 				log.WithError(err).Error("Unable to delete tweet")
 				http.Error(w, "Something went wrong", http.StatusInternalServerError)
 			}

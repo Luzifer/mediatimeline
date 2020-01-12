@@ -63,6 +63,9 @@
                   <i class="fas fa-search-plus"></i>
                   <b-badge pill variant="light" v-if="tweet.images.length > 1">{{ tweet.images.length }}</b-badge>
                 </b-button>
+                <b-button size="sm" variant="secondary" @click="deleteTweet(tweet)">
+                  <i class="fas fa-trash"></i>
+                </b-button>
               </b-card-footer>
 
             </b-card>

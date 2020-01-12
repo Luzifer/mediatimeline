@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ChimeraCoder/anaconda"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
 	hhelp "github.com/Luzifer/go_helpers/v2/http"
@@ -30,6 +31,7 @@ var (
 		VersionAndExit bool   `flag:"version" default:"false" description:"Prints current version and exits"`
 	}{}
 
+	router     = mux.NewRouter()
 	tweetStore *store
 	twitter    *anaconda.TwitterApi
 
@@ -72,8 +74,8 @@ func main() {
 
 	log.WithField("version", version).Info("MediaTimeline Viewer started")
 
-	http.Handle("/", http.FileServer(http.Dir(cfg.Frontend)))
-	http.ListenAndServe(cfg.Listen, hhelp.NewHTTPLogHandler(http.DefaultServeMux))
+	router.Handle("/", http.FileServer(http.Dir(cfg.Frontend)))
+	http.ListenAndServe(cfg.Listen, hhelp.NewHTTPLogHandler(router))
 }
 
 func loadAndStoreTweets(forceRefresh bool) {

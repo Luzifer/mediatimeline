@@ -25,9 +25,26 @@ new Vue({
       this.modalTweet = tweet
     },
 
+    deleteTweet(tweet) {
+      axios
+        .delete(`/api/${tweet.id}`)
+        .then(() => {
+          const tweets = []
+
+          for (const t in this.tweets) {
+            if (t.id !== tweet.id) {
+              tweets.push(t)
+            }
+          }
+
+          this.tweets = tweets
+        })
+        .catch(err => console.log(err))
+    },
+
     favourite(tweet) {
       axios
-        .post('/api/favourite', { id: tweet.id })
+        .put(`/api/${tweet.id}/favorite`)
         .then(res => {
           if (res.data.length === 0) {
             this.refetch(tweet)
@@ -49,7 +66,7 @@ new Vue({
 
     refetch(tweet) {
       axios
-        .post('/api/refresh', { id: tweet.id })
+        .put(`/api/${tweet.id}/refresh`)
         .then(res => {
           if (res.data.length === 0) {
             return
@@ -82,7 +99,7 @@ new Vue({
 
     triggerForceFetch() {
       axios
-        .post('/api/force-reload')
+        .put('/api/force-reload')
         .then(() => {
           this.notify('Force refresh triggered, reloading tweets in 10s')
           window.setTimeout(() => this.refresh(true), 10000)
